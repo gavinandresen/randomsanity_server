@@ -1,4 +1,4 @@
-package randomsanity
+package main
 
 import (
 	"crypto/rand"

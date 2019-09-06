@@ -1,42 +1,16 @@
-// AppEngine-based server to sanity check byte arrays
+// appengine-based server to sanity check byte arrays
 // that are supposed to be random.
-package randomsanity
+package main
 
 import (
-	"appengine"
+	"google.golang.org/appengine"
 	"encoding/hex"
 	"fmt"
 	"net/http"
 	"strings"
 	"time"
+	"google.golang.org/appengine/datastore"
 )
-
-func init() {
-	// Main API point, sanity check hex bytes
-	http.HandleFunc("/v1/q/", submitBytesHandler)
-
-	// Start an email loop to get an id token, to be
-	// notified via email of failures:
-	http.HandleFunc("/v1/registeremail/", registerEmailHandler)
-
-	// Remove an id token
-	http.HandleFunc("/v1/unregister/", unRegisterIDHandler)
-
-	// Get usage stats
-	http.HandleFunc("/v1/usage", usageHandler)
-
-	// Development/testing...
-	http.HandleFunc("/v1/debug", debugHandler)
-
-	// Redirect to www. home page
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-		http.Redirect(w, r, "https://www.randomsanity.org/", 301)
-	})
-}
 
 func debugHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain")

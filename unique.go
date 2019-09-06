@@ -1,10 +1,11 @@
-package randomsanity
+package main
 
 // Best-effort "have we ever seen this array of bytes before?"
 
 import (
-	"appengine"
-	"appengine/datastore"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
@@ -12,7 +13,7 @@ import (
 	"time"
 )
 
-func looksUnique(ctx appengine.Context, w http.ResponseWriter, b []byte, uID string, tag string) (bool, error) {
+func looksUnique(ctx context.Context, w http.ResponseWriter, b []byte, uID string, tag string) (bool, error) {
 	// Test every 16-byte (128-bit) sequence in the input against our database
 
 	// if we get a match, complain!
@@ -67,7 +68,7 @@ type SecretBytes struct {
 	CreationTime int64
 }
 
-func secretKey(ctx appengine.Context) ([]byte, error) {
+func secretKey(ctx context.Context) ([]byte, error) {
 	var result []byte
 
 	// Create random secret if it doesn't already exist:
@@ -133,7 +134,7 @@ func hash16(secret []byte, data []byte) []byte {
 	return h[0:16]
 }
 
-func unique(ctx appengine.Context, b []byte, uID string, tag string) (*RngUniqueBytesEntry, int, error) {
+func unique(ctx context.Context, b []byte, uID string, tag string) (*RngUniqueBytesEntry, int, error) {
 	n := len(b) - 15 // Number of queries
 	keys := make([]*datastore.Key, n)
 	vals := make([]*RngUniqueBytes, n)
@@ -181,12 +182,12 @@ func unique(ctx appengine.Context, b []byte, uID string, tag string) (*RngUnique
 	return nil, 0, nil
 }
 
-func write(ctx appengine.Context, b []byte, t int64, uID string, tag string) error {
+func write(ctx context.Context, b []byte, t int64, uID string, tag string) error {
 	const maxEntriesPerKey = 100
 
 	key := datastore.NewKey(ctx, "RBH", "", 1+i64(b[0:prefixBytes]), nil)
 
-	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
+	err := datastore.RunInTransaction(ctx, func(ctx context.Context) error {
 		hit := new(RngUniqueBytes)
 		err := datastore.Get(ctx, key, hit)
 		if err != nil && err != datastore.ErrNoSuchEntity {

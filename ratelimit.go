@@ -1,8 +1,8 @@
-package randomsanity
+package main
 
 import (
-	"appengine"
-	"appengine/memcache"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine/memcache"
 	"fmt"
 	"net/http"
 	"strings"
@@ -12,7 +12,7 @@ import (
 // Limit something (identified by key) to at most max per timespan
 // State stored in the memcache, so this is "best-effort"
 // Returns true if rate limit is hit.
-func RateLimit(ctx appengine.Context, key string, max uint64, timespan time.Duration) (bool, error) {
+func RateLimit(ctx context.Context, key string, max uint64, timespan time.Duration) (bool, error) {
 	value, err := memcache.Increment(ctx, key, -1, max+1)
 	if err != nil {
 		return false, err
@@ -37,10 +37,10 @@ func RateLimit(ctx appengine.Context, key string, max uint64, timespan time.Dura
 }
 
 // Rate limit, and write stuff to w:
-func RateLimitResponse(ctx appengine.Context, w http.ResponseWriter, key string, max uint64, timespan time.Duration) (bool, error) {
+func RateLimitResponse(ctx context.Context, w http.ResponseWriter, key string, max uint64, timespan time.Duration) (bool, error) {
 	limit, err := RateLimit(ctx, key, max, timespan)
 	if err != nil {
-		http.Error(w, "RateLimit error", http.StatusInternalServerError)
+		http.Error(w, "RateLimit err: "+err.Error(), http.StatusInternalServerError)
 		return false, err
 	}
 	if limit {

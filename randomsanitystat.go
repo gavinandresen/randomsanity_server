@@ -21,7 +21,7 @@
 // Don't.  Find something more productive to do. CPU time is really cheap;
 // finding somebody willing to spend a half a day reviewing your awesomely
 // clever algorithm for detecting stuck bits is expensive.
-package randomsanity
+package main
 
 import (
 	"encoding/binary"

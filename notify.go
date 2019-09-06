@@ -1,9 +1,10 @@
-package randomsanity
+package main
 
 import (
-	"appengine"
-	"appengine/datastore"
-	"appengine/mail"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
+	"google.golang.org/appengine/mail"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
@@ -23,7 +24,7 @@ type NotifyViaEmail struct {
 }
 
 // Return userID associated with request (or empty string)
-func userID(ctx appengine.Context, id string) (*datastore.Key, error) {
+func userID(ctx context.Context, id string) (*datastore.Key, error) {
 	// Only pay attention to ?id=123456 if they've done an authentication loop
 	// and are already in the database
 	if len(id) == 0 {
@@ -157,7 +158,7 @@ func unRegisterIDHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "id %s unregistered\n", uID)
 }
 
-func sendNewID(ctx appengine.Context, address string, id string) {
+func sendNewID(ctx context.Context, address string, id string) {
 	msg := &mail.Message{
 		Sender:  "randomsanityalerts@gmail.com",
 		To:      []string{address},
@@ -178,7 +179,7 @@ func sendNewID(ctx appengine.Context, address string, id string) {
 	}
 }
 
-func sendEmail(ctx appengine.Context, address string, tag string, b []byte, reason string) {
+func sendEmail(ctx context.Context, address string, tag string, b []byte, reason string) {
 	// Don't spam if there are hundreds of failures, limit to
 	// a handful per day:
 	limit, err := RateLimit(ctx, address, 5, time.Hour*24)
@@ -201,7 +202,7 @@ func sendEmail(ctx appengine.Context, address string, tag string, b []byte, reas
 	}
 }
 
-func notify(ctx appengine.Context, uid string, tag string, b []byte, reason string) {
+func notify(ctx context.Context, uid string, tag string, b []byte, reason string) {
 	if len(uid) == 0 {
 		return
 	}

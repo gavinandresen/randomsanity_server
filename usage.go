@@ -1,8 +1,9 @@
-package randomsanity
+package main
 
 import (
-	"appengine"
-	"appengine/datastore"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"encoding/json"
 	"log"
 	"math/rand" // don't need cryptographically secure randomness here
@@ -20,13 +21,13 @@ type UsageRecord struct {
 	N int64 `datastore:",noindex"`
 }
 
-func RecordUsage(ctx appengine.Context, k string, n int64) {
+func RecordUsage(ctx context.Context, k string, n int64) {
 	if rand.Intn(SAMPLING_FACTOR) != 0 {
 		return
 	}
 	key := datastore.NewKey(ctx, "UsageRecord", k, 0, nil)
 
-	err := datastore.RunInTransaction(ctx, func(ctx appengine.Context) error {
+	err := datastore.RunInTransaction(ctx, func(ctx context.Context) error {
 		r := UsageRecord{K: k, N: 0}
 		err := datastore.Get(ctx, key, &r)
 		if err != nil && err != datastore.ErrNoSuchEntity {
@@ -41,7 +42,7 @@ func RecordUsage(ctx appengine.Context, k string, n int64) {
 	}
 }
 
-func GetUsage(ctx appengine.Context) []UsageRecord {
+func GetUsage(ctx context.Context) []UsageRecord {
 	var results []UsageRecord
 
 	q := datastore.NewQuery("UsageRecord")
