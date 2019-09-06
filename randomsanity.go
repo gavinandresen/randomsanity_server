@@ -6,7 +6,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
 	"net/http"
 	"strings"
 	"time"
@@ -16,8 +15,10 @@ func debugHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "text/plain")
 
 	// Code useful for development/testing:
-	//	fmt.Fprint(w, "***r.Header headers***\n")
-	//	r.Header.Write(w)
+	fmt.Fprintf(w, "IPKey for memcache: %s\n",IPKey("q", r.RemoteAddr))
+
+	fmt.Fprint(w, "***r.Header headers***\n")
+	r.Header.Write(w)
 
 	//	ctx := appengine.NewContext(r)
 	//	fmt.Fprint(w, "Usage data:\n")
@@ -45,30 +46,9 @@ func submitBytesHandler(w http.ResponseWriter, r *http.Request) {
 
 	ctx := appengine.NewContext(r)
 
-	// Users that register can append id=....&tag=.... so
-	// they're notified if somebody else submits
-	// the same random bytes
-	uID := r.FormValue("id")
-	dbKey, _ := userID(ctx, uID)
-	tag := ""
-	if dbKey == nil {
-		uID = ""
-	} else {
-		tag = r.FormValue("tag")
-		if len(tag) > 64 {
-			tag = "" // Tags must be short
-		}
-	}
 
-	// Rate-limit by IP address, with a much higher limit for registered users
-	// If more complicated logic is needed because of abuse a per-user limit
-	// could be stored in the datastore, but running into the 600-per-hour-per-ip
-	// limit should be rare (maybe a sysadmin has 200 virtual machines
-	// behind the same IP address and restarts them more than three times in a hour....)
+	// Rate-limit by IP address.
 	var ratelimit uint64 = 60
-	if len(uID) > 0 {
-		ratelimit = 600
-	}
 	limited, err := RateLimitResponse(ctx, w, IPKey("q", r.RemoteAddr), ratelimit, time.Hour)
 	if err != nil || limited {
 		return
@@ -85,7 +65,6 @@ func submitBytesHandler(w http.ResponseWriter, r *http.Request) {
 	if !result {
 		RecordUsage(ctx, "Fail_"+reason, 1)
 		fmt.Fprint(w, "false")
-		notify(ctx, uID, tag, b, reason)
 		return
 	}
 
@@ -94,7 +73,7 @@ func submitBytesHandler(w http.ResponseWriter, r *http.Request) {
 	if len(b) > 64 {
 		b = b[0:64] // Prevent DoS from excessive datastore lookups
 	}
-	unique, err := looksUnique(ctx, w, b, uID, tag)
+	unique, err := looksUnique(ctx, w, b)
 	if err != nil {
 		return
 	}

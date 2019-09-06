@@ -13,21 +13,17 @@ import (
 	"time"
 )
 
-func looksUnique(ctx context.Context, w http.ResponseWriter, b []byte, uID string, tag string) (bool, error) {
+func looksUnique(ctx context.Context, w http.ResponseWriter, b []byte) (bool, error) {
 	// Test every 16-byte (128-bit) sequence in the input against our database
 
 	// if we get a match, complain!
-	match, i, err := unique(ctx, b[:], uID, tag)
+	match, _, err := unique(ctx, b[:])
 
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return true, err
 	}
 	if match != nil {
-		notify(ctx, uID, tag, b[i:i+16], "Non Unique")
-		if len(match.UserID) > 0 && match.UserID != uID {
-			notify(ctx, match.UserID, match.Tag, b[i:i+16], "Non Unique")
-		}
 		return false, nil
 	}
 	return true, nil
@@ -134,7 +130,7 @@ func hash16(secret []byte, data []byte) []byte {
 	return h[0:16]
 }
 
-func unique(ctx context.Context, b []byte, uID string, tag string) (*RngUniqueBytesEntry, int, error) {
+func unique(ctx context.Context, b []byte) (*RngUniqueBytesEntry, int, error) {
 	n := len(b) - 15 // Number of queries
 	keys := make([]*datastore.Key, n)
 	vals := make([]*RngUniqueBytes, n)
@@ -163,18 +159,16 @@ func unique(ctx context.Context, b []byte, uID string, tag string) (*RngUniqueBy
 		for _, h := range hit.Hits {
 			if bytes.Equal(h.Trailing, chunks[i][prefixBytes:]) {
 				// Rewriting keeps this entry from getting evicted
-				// and overwriting the userid prevents the
-				// user from getting too many notifications
-				write(ctx, chunks[i][:], time.Now().Unix(), "", h.Tag)
+				write(ctx, chunks[i][:], time.Now().Unix())
 				return &h, i, nil // ... full match!
 			}
 		}
 	}
 	// If no matches, store the first and last 16 bytes. Any future
 	// overlapping sequences will trigger a match.
-	err = write(ctx, chunks[0][:], time.Now().Unix(), uID, tag)
+	err = write(ctx, chunks[0][:], time.Now().Unix())
 	if err == nil && n > 1 {
-		err = write(ctx, chunks[n-1][:], time.Now().Unix(), uID, tag)
+		err = write(ctx, chunks[n-1][:], time.Now().Unix())
 	}
 	if err != nil {
 		return nil, 0, err
@@ -182,7 +176,7 @@ func unique(ctx context.Context, b []byte, uID string, tag string) (*RngUniqueBy
 	return nil, 0, nil
 }
 
-func write(ctx context.Context, b []byte, t int64, uID string, tag string) error {
+func write(ctx context.Context, b []byte, t int64) error {
 	const maxEntriesPerKey = 100
 
 	key := datastore.NewKey(ctx, "RBH", "", 1+i64(b[0:prefixBytes]), nil)
@@ -201,7 +195,7 @@ func write(ctx context.Context, b []byte, t int64, uID string, tag string) error
 			}
 		}
 		// Append new:
-		e := RngUniqueBytesEntry{Trailing: b[prefixBytes:], Time: t, UserID: uID, Tag: tag}
+		e := RngUniqueBytesEntry{Trailing: b[prefixBytes:], Time: t, UserID: "", Tag: ""}
 		hit.Hits = append(hits, e)
 		// Throw out half the old if bucket overflows:
 		if len(hit.Hits) > maxEntriesPerKey {
