@@ -1,13 +1,13 @@
 package main
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine"
 	"google.golang.org/appengine/datastore"
 	"google.golang.org/appengine/mail"
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
 	"log"
 	"net/http"
 	"strings"

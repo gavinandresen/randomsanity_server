@@ -1,9 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"golang.org/x/net/context"
 	"google.golang.org/appengine/memcache"
-	"fmt"
 	"net/http"
 	"strings"
 	"time"

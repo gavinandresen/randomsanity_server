@@ -3,12 +3,12 @@ package main
 // Best-effort "have we ever seen this array of bytes before?"
 
 import (
-	"golang.org/x/net/context"
-	"google.golang.org/appengine"
-	"google.golang.org/appengine/datastore"
 	"bytes"
 	"crypto/rand"
 	"crypto/sha256"
+	"golang.org/x/net/context"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"net/http"
 	"time"
 )

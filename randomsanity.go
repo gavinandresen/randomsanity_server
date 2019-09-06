@@ -3,13 +3,13 @@
 package main
 
 import (
-	"google.golang.org/appengine"
 	"encoding/hex"
 	"fmt"
+	"google.golang.org/appengine"
+	"google.golang.org/appengine/datastore"
 	"net/http"
 	"strings"
 	"time"
-	"google.golang.org/appengine/datastore"
 )
 
 func debugHandler(w http.ResponseWriter, r *http.Request) {
